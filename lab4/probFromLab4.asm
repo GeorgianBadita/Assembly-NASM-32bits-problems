@@ -1,3 +1,4 @@
+     
 ; Se dau cuvintele A si B. Se cere cuvantul C format astfel:
 ;- bitii 0-2 ai lui C coincid cu bitii 10-12 ai lui B
 ;- bitii 3-6 ai lui C au valoarea 1

@@ -15,7 +15,8 @@ import exit msvcrt.dll
 segment data use32 class=data
     
     A dw 0111011101010111b
-    B dw 1001101110111110b
+    B dw 
+    
     C dd 0
 ; our code starts here
 segment code use32 class=code
