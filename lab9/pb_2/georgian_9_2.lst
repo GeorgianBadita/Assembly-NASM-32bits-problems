@@ -1,0 +1,132 @@
+     1                                  ;Badita Marin-Georgian, gr. 211, 28.11.2017, tema lab 9, problema 2
+     2                                  
+     3                                  ;Se da un fisier text. Sa se citeasca continutul fisierului, sa se contorizeze numarul de consoane si sa se afiseze aceasta valoare. 
+     4                                  ;Numele fisierului text este definit in segmentul de date.
+     5                                  
+     6                                  
+     7                                  
+     8                                  bits 32
+     9                                  
+    10                                  
+    11                                  global start        
+    12                                  
+    13                                  
+    14                                  extern exit, fopen, fread, fclose, printf     
+    15                                  import exit msvcrt.dll
+    16                                  import fopen msvcrt.dll
+    17                                  import fread msvcrt.dll
+    18                                  import fclose msvcrt.dll
+    19                                  import printf msvcrt.dll
+    20                                  
+    21                                  segment data use32 class=data
+    22                                      ; ...
+    23 00000000 696E7075742E747874-         nume_fisier db "input.txt", 0 ;numele fisierului care ca fi creat
+    23 00000009 00                 
+    24 0000000A 7200                        mod_acces db "r", 0           ;modul de deschidere a fisierului
+    25                                      len equ 100                   ;numarul maxim de elemente cititie din fisier
+    26 0000000C 00<rept>                    buffer times (len + 1) db 0     ;sirul in care se va citit textul din fisier de dimensiune (len + 1)
+    27 00000071 FFFFFFFF                    descrptor_fis dd -1           ;variabila in care vom salva descriptorul fisierului - necesar pentru a putea face referire la fisier
+    28 00000075 4E756D6172756C2064-         format db "Numarul de consoane din text este %d", 0 ;formatul - utilizat pentru afisarea numarului de consoane din textul cititi
+    28 0000007E 6520636F6E736F616E-
+    28 00000087 652064696E20746578-
+    28 00000090 742065737465202564-
+    28 00000099 00                 
+    29                                  ; our code starts here
+    30 0000009A 00000000                    nr_car_citite dd 0 ;variabila in care vom salva numarul de caractere
+    31 0000009E 00                          numar_cons db 0   ;variabila care numara cate consoane avem
+    32                                  segment code use32 class=code
+    33                                      start:
+    34                                          ;apelam fopen pentru a deschide fisierului
+    35                                          ;functia va returna in EAX descriptorul fisierului sau 0 in caz de eroare
+    36                                          ;EAX = fopen(nume_fisier, mod_acces)
+    37                                          
+    38 00000000 68[0A000000]                    push DWORD mod_acces
+    39 00000005 68[00000000]                    push DWORD nume_fisier
+    40 0000000A FF15[00000000]                  call [fopen]
+    41 00000010 83C408                          add ESP, 4*2    ;eliberam parametrii de pe stiva
+    42                                         
+    43 00000013 A3[71000000]                    mov [descrptor_fis], EAX ;salvam valoarea returnata de fopen in variabila descrptor_fis
+    44                                          
+    45                                          ;verificam daca functia fopen a accesat cu succes fisierul (daca EAX != 0)
+    46                                          
+    47 00000018 83F800                          cmp EAX, 0
+    48 0000001B 0F8497000000                    je final
+    49                                          ;citim textul din fisierul deschis folosind functia fread
+    50                                          ;EAX = fread(text, 1, len, descrptor_fis)
+    51                                          
+    52                                          bucla:
+    53                                              ;citim o parte(100 de caractere) din textul in fisierul deschis folosind fread
+    54                                              ;EAX = fread(buffer, 1, len, descrptor_fis)
+    55 00000021 FF35[71000000]                      push DWORD [descrptor_fis]
+    56 00000027 6A64                                push DWORD len
+    57 00000029 6A01                                push DWORD 1
+    58 0000002B 68[0C000000]                        push DWORD buffer
+    59 00000030 FF15[00000000]                      call [fread]
+    60 00000036 83C410                              add ESP, 4*4
+    61                                              
+    62                                              ;EAX = numar de caractere /bytes citite
+    63 00000039 83F800                              cmp EAX, 0  ;daca numarul de caractere citite este  0, am terminat de parcurs fisierul
+    64 0000003C 7458                                je clean_up
+    65                                              
+    66 0000003E A3[9A000000]                        mov [nr_car_citite], EAX ;salvam numarul de caractere citite
+    67 00000043 BA00000000                          mov EDX, 0      ;punem 0 in EDX, deoarece il vom folosi ca si contor
+    68 00000048 8B0D[9A000000]                      mov ECX, [nr_car_citite] ;punem in ECX nr_car_citite ca sa iteram 
+    69 0000004E FC                                  cld ;setam directia de parcurgere de la stanga la dreapta
+    70 0000004F E367                                jecxz final
+    71                                              num_cons:   
+    72                                                  
+    73 00000051 8A9A[0C000000]                          mov BL, [buffer + EDX] ;punem in BL pozitia curenta din sir
+    74 00000057 42                                      inc EDX ;incrementam EDX pentru a trece la pozitia urmatoare
+    75 00000058 80FB61                                  cmp BL, 'a' ;comparam valoarea curenta cu a
+    76 0000005B 7502                                    jne comp_e ;daca nu este egala cu a, trecem la e
+    77 0000005D 7433                                    je not_cons ;daca este egala cu a, sarim la eticheta not_cons
+    78                                                  comp_e: 
+    79 0000005F 80FB65                                      cmp BL, 'e' ;comparam valoarea curenta cu e
+    80 00000062 7502                                        jne comp_i ;daca nu este egala trecem la compararea cu i
+    81 00000064 742C                                        je not_cons ;daca caracterul este egal cu i trecem la eticheta not_cons
+    82                                                      comp_i: 
+    83 00000066 80FB69                                          cmp BL, 'i' ;comparam caracterul curent cu i
+    84 00000069 7502                                            jne comp_o ;daca nu este egal cu i, trecem la compararea cu o
+    85 0000006B 7425                                            je not_cons ;daca este egal cu i atunci sarim la eticheta not_cons
+    86                                                          comp_o:
+    87 0000006D 80FB6F                                              cmp BL, 'o' ;comparam caracterul curent cu o
+    88 00000070 7502                                                jne comp_u ;daca nu este egal cu o, trecem la compararea cu u
+    89 00000072 741E                                                je not_cons ;daca este egal cu o atunci trecem la eticheta not_cons
+    90                                                              comp_u:
+    91 00000074 80FB75                                                  cmp BL, 'u' ;acelasi rationament ca si mai sus
+    92 00000077 7502                                                    jne count_cons ;daca programul a ajuns cu executia la aceasta instructiune
+    93                                                                  ;si caracterul curent nu este egal cu u atunci el este consoana si sarim la eticheta count_cons
+    94 00000079 7417                                                    je not_cons ;daca caracterul curent este egaul cu u sarim la eticheta not_cons
+    95                                                  
+    96                                                  count_cons:
+    97 0000007B 80FB20                                      cmp BL, ' ' ;mai avem o ultima comparatie de facut, anume daca caracterul curent este spatuu
+    98 0000007E 7502                                        jne count ;daca nu este spatiu, sarim la eticheta count
+    99 00000080 7410                                        je not_cons ;daca este spatiu sarim la eticheta not_cons
+   100                                                      count:
+   101 00000082 8A1D[9E000000]                                  mov BL, [numar_cons] ;punem numarul de consoane curente in BL
+   102 00000088 FEC3                                            inc BL ;incrementam BL
+   103 0000008A 881D[9E000000]                                  mov [numar_cons], BL ;updatam numarul de consoane
+   104 00000090 E2BF                                            loop num_cons ;mergem inapoi la eticheta num_cons pentru a verifica urmatoarele caractere
+   105                                                  not_cons:
+   106 00000092 E2BD                                        loop num_cons ;daca caracterul nu este consoana, revenim la eticheta num_cons pentru a verifica celelalte caractere ramase
+   107 00000094 EB8B                                jmp bucla ;refacem citirea
+   108                                              
+   109                                          clean_up:
+   110                                             
+   111                                              ;cand am terminat de prelucrat sirul, afisam numarul de consoane
+   112                                              
+   113 00000096 FF35[9E000000]                      push DWORD [numar_cons]
+   114 0000009C 68[75000000]                        push DWORD format
+   115 000000A1 FF15[00000000]                      call [printf]
+   116 000000A7 83C408                              add ESP, 4*2
+   117                                              
+   118                                              ;apelam functia fclose pentru a inchide fisierul
+   119                                              ;fclose(descrptor_fis)
+   120 000000AA 68[71000000]                        push DWORD descrptor_fis
+   121 000000AF FF15[00000000]                      call [fclose]
+   122 000000B5 83C404                              add ESP, 4
+   123                                              
+   124                                              
+   125                                          final:
+   126 000000B8 6A00                            push    dword 0      
+   127 000000BA FF15[00000000]                  call    [exit]      

@@ -1,0 +1,92 @@
+     1                                  ;Badita Marin-Georgian, gr. 211, 20.11.2017, tema lab 7, problema 4
+     2                                  ;4. Dandu-se doua siruri de octeti sa se calculeze toate pozitiile unde al doilea sir apare ca subsir in primul sir.
+     3                                  bits 32
+     4                                  
+     5                                  
+     6                                  global start        
+     7                                  
+     8                                  
+     9                                  extern exit, printf            
+    10                                  import exit msvcrt.dll
+    11                                  import printf msvcrt.dll
+    12                                  segment data use32 class=data
+    13 00000000 02030438040304380C-         s db 2, 3, 4, 56, 4, 3, 4, 56, 12, 3 ,3 ,4, 56, 3, 4, 56, 5, 6, 3, 4, 56, 1 ;sirul initial
+    13 00000009 030304380304380506-
+    13 00000012 03043801           
+    14 00000016 030438                      s1 db 3, 4, 56 ;sirul de verificat a fi subsir
+    15                                      len_S equ s1 - s ;lungimea sirului s
+    16                                      len_S1 equ $ - s1 ;lungimea sirului s1
+    17 00000019 FF<rept>                    rez times len_S db -1 ;rezultatul
+    18 0000002F 00                          poz db 0 ;pozitia curenta
+    19 00000030 0000                        cnt dw 0 ;numarul de potriviri
+    20 00000032 25640A00                    format_print db "%d",10, 0
+    21                                  
+    22                                  ; our code starts here
+    23                                  segment code use32 class=code
+    24                                      start:
+    25 00000000 FC                              cld; setam DF la 0 pentru parcurgere de la stanga la dreapta
+    26 00000001 B914000000                      mov ECX, len_S - len_S1 + 1;parcurgem sirul intr-un loop de |s| - |s1| + 1 ori (|s| notat cardinal de s)
+    27 00000006 BA00000000                      mov EDX, 0; punem in EDX 0, pentru a juca rol de contor pentru sirul de pozitii
+    28 0000000B 83F900                          cmp ECX, 0; comparam dimensiunea lui ECX cu 0, pentru ca in cazul in care |s1| > |s| sa nu avem ciclu infinit
+    29 0000000E 7E67                            jng sf_Prg
+    30 00000010 E365                            jecxz sf_Prg
+    31                                          for_1:
+    32 00000012 BE[00000000]                        mov ESI, s;punem sirul sursa in ESI
+    33 00000017 A0[2F000000]                        mov AL, [poz] ;punem in AL, pozitia curenta
+    34 0000001C 6698                                cbw ;AL -> AX
+    35 0000001E 98                                  cwde; AX -> EAX
+    36 0000001F 01C6                                add ESI, EAX ;adunam la baza sirului sursa, pozitia curenta
+    37 00000021 A0[2F000000]                        mov AL, [poz]  ;punem pozitia in AL
+    38 00000026 FEC0                                inc AL           ;incrementam pozitia
+    39 00000028 A2[2F000000]                        mov [poz], AL  
+    40 0000002D BF[16000000]                        mov EDI, s1 ;punem sirul destinatie in EDI
+    41 00000032 51                                  push ECX ;salvam ECX pe stiva
+    42 00000033 B903000000                          mov ECX, len_S1; punem in ECX lungimea lui S1
+    43 00000038 66B80000                            mov AX, 0
+    44 0000003C 66A3[30000000]                      mov [cnt], AX ;setam numarul de potriviri de la pozitia curenta cu 0
+    45                                              for_2:
+    46 00000042 A6                                      cmpsb ;compar element cu elemnt sirul de lungime len_S1 ce incepe la pozitia curenta din sirul sursa, cu elementele sirului destinatie
+    47 00000043 7402                                    je isEq ;daca sunt egale
+    48 00000045 750C                                    jne notEq
+    49                                                  isEq:
+    50 00000047 A0[30000000]                            mov AL, [cnt] 
+    51 0000004C FEC0                                    inc AL ;numar o potrivire
+    52 0000004E A2[30000000]                            mov [cnt], AL
+    53                                                  notEq:
+    54 00000053 E2ED                                    loop for_2 ;in caz de neegalitate refacem loop-ul
+    55                                                  
+    56 00000055 66A1[30000000]                      mov AX, [cnt]  ;punem numarul de potriviri de la pozitia curenta in AX
+    57 0000005B 66BB0300                            mov BX, len_S1 ;punem lungimea sirului S1 in BX
+    58 0000005F 6639D8                              cmp AX, BX ;comparam cele doua valori
+    59 00000062 7402                                je savePos ;daca numarul de potriviri este egal cu lungimea sirului, salvam pozitia
+    60 00000064 750E                                jne notSave;daca numarul de potriviri nu este egal cu lungimea sirului, refacem loop-ul
+    61                                              savePos:
+    62 00000066 A0[2F000000]                            mov AL, [poz] ;punem pozitia la care ne aflam in AL
+    63 0000006B 1C01                                    sbb AL, 1 ;o decrementam cu 1, pentru a face indexarea de la 0
+    64 0000006D 8882[19000000]                          mov [rez + EDX], AL ;in sirul rezultat, la pozitia EDX, salvam pozitia 
+    65 00000073 42                                      inc EDX ;incrementam EDX
+    66                                              notSave:
+    67 00000074 59                                  pop ECX ;restauram valoarea lui ECX
+    68 00000075 E29B                                loop for_1;facem inca odata loop la for_1
+    69                                              
+    70                                          sf_Prg: ;eticheta de sfarsit de program
+    71 00000077 B916000000                      mov ECX, len_S ;punem in ECX lungimea sirului S, respectiv lungimea sirului rez
+    72 0000007C BE[19000000]                    mov ESI, rez ;punem in sirul sursa, sirul rezultat
+    73                                          for_afisare: ;eticheta de afisare
+    74 00000081 AC                                  lodsb ;punem in AL, elementul de la pozitia curenta din sursa
+    75 00000082 3CFF                                cmp AL, -1 ;comparam valoarea cu -1
+    76 00000084 7F02                                jg save ;in caz ca valoarea este mai mare decat -1 o salvam
+    77 00000086 7E14                                jng loop_again ;altfel ne reintoarcem la loop
+    78                                          save:
+    79 00000088 6699                                cwd ;in caz ca salvam, trecem valoarea din AL in AX
+    80 0000008A 98                                  cwde ;trecem valoarea din AX in EAX
+    81 0000008B 60                                  pushad ;salvam valorile registriilor
+    82 0000008C 50                                  push DWORD EAX ;punem EAX pe stiva
+    83 0000008D 68[32000000]                        push DWORD format_print ;punem formatul de printare pe stiva
+    84 00000092 FF15[00000000]                      call [printf] ;apelam functia print
+    85 00000098 83C408                              add ESP, 4*2; eliberam stiva
+    86 0000009B 61                                  popad;restauram valoarea registrilor
+    87                                          loop_again:    
+    88 0000009C E2E3                            loop for_afisare
+    89 0000009E 6A00                            push    dword 0      
+    90 000000A0 FF15[00000000]                  call    [exit]      

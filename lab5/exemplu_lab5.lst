@@ -12,7 +12,8 @@
     12                                      ; ...
     13 00000000 00000000                    n dd  0 ;alocare de memorie fara asignare
     14 00000004 256400                     format_scan db "%d", 0
-    15 00000007 25640A0D00                 format_printf db "%d",10, 13, 0
+    15 00000007 70756C61206D65610A-        format_printf db "pula mea",10, 13, 0
+    15 00000010 0D00               
     16                                  
     17                                  ; our code starts here
     18                                  segment code use32 class=code
