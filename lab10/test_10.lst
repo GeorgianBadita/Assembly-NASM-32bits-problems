@@ -1,144 +1,122 @@
-     1                                  bits 32
+     1                                  
      2                                  
      3                                  
-     4                                  global start        
-     5                                  
+     4                                  
+     5                                  bits 32
      6                                  
-     7                                  extern exit, fopen, fclose, fread, printf, fprintf      
-     8                                  import exit msvcrt.dll
-     9                                  import fopen msvcrt.dll
-    10                                  import fclose msvcrt.dll
-    11                                  import fread msvcrt.dll
-    12                                  import printf msvcrt.dll
-    13                                  import fprintf msvcrt.dll
-    14                                  segment data use32 class=data
-    15                                      ; ...
-    16 00000000 746573742E74787400          nume_fisier db "test.txt", 0            ;numele fiseireului care va fi deschis si din care se va citi
-    17 00000009 7200                        mod_acces db "r", 0                     ;modul de acces, 'r' pentru citire
-    18 0000000B 7700                        mod_acces1 db "w", 0                    ;modul de acces, 'w' pentru scriere
-    19 0000000D FFFFFFFF                    descripotr_fis dd -1                    ;descriptorul fisierului
-    20 00000011 00000000                    nr_car_citite dd 0                      ;numarul de caractere citite
-    21                                      len equ 100                             ;numarul maxim de caractere citite intr-o etapa
-    22 00000015 00<rept>                    buffer times len db 0                   ;sirul in care se va citit textul
-    23 00000079 00<rept>                    rez times len db 0                      ;sirul in care se va pune rezultatul
-    24 000000DD 257300                      format db "%s", 0                       ;formatul de citire si afisare al input-ului/output-ului
-    25 000000E0 303132333435363738-         tabHexa db "0123456789ABCDEF"           ;o tabela cu toate cifrele Hexa
-    25 000000E9 39414243444546     
-    26 000000F0 6165696F75                  vocale_mici db "aeiou"                  ;sir de caractere format din vocalele mici 
-    27 000000F5 4145494F55                  vocale_mari db "AEIOU"                  ;sir de caractere format din vocalele mari
-    28 000000FA 00                          been_voc db 0                           ;variabila de tip bool care ne va spune daca un caracter a fost sau nu vocala
-    29                                  ; our code starts here
-    30                                  segment code use32 class=code
-    31                                      start:
-    32                                          mov EDX, [eflags]
-    32          ******************       error: symbol `eflags' undefined
-    33                                          ;apelam functia fopen pentru a deschide fisierul
-    34                                          ;returneaza in EAX descriptorul sau 0 in caz de eraoare
-    35 00000000 68[09000000]                    push DWORD mod_acces
-    36 00000005 68[00000000]                    push DWORD nume_fisier
-    37 0000000A FF15[00000000]                  call [fopen]
-    38 00000010 83C408                          add ESP, 4*2
-    39                                          
-    40                                          ;verifica daca functia a accesat cu succes fisierul
-    41 00000013 83F800                          cmp EAX, 0
-    42 00000016 0F84FC000000                    je final ;daca nu se acceseaza cu succes, sarim la final
-    43                                          
-    44 0000001C A3[0D000000]                    mov [descripotr_fis], EAX   ;salvam valoarea returnata de functia fopen in variabila descripotr_fis
-    45 00000021 BF[79000000]                    mov EDI, rez    ;setam sirul rezultat ca si sir destinatie
-    46                                          repeta:
-    47 00000026 FF35[0D000000]                      push DWORD [descripotr_fis]
-    48 0000002C 6A64                                push DWORD len
-    49 0000002E 6A01                                push DWORD 1
-    50 00000030 68[15000000]                        push DWORD buffer
-    51 00000035 FF15[00000000]                      call [fread]
-    52 0000003B 83C410                              add ESP, 4*4
-    53                                              
-    54 0000003E 83F800                              cmp EAX, 0
-    55 00000041 0F8491000000                        je cleanup ;in cazul incare nu mai avem caractere de citit, sarim la cleanup (afisare si inchidere de fisier)
-    56                                              
-    57 00000047 A3[11000000]                        mov [nr_car_citite], EAX ;salvam numarul de caractere citite
-    58                                            
-    59                                              
-    60 0000004C BE[15000000]                        mov ESI, buffer     ;initializam sirul sursa ca fiind bufferul citit
-    61 00000051 8B0D[11000000]                      mov ECX, [nr_car_citite]                ;punem in ECX numarul de caractere citite
-    62                                              compare:
-    63 00000057 51                                      push ECX                            ;salvam pe stiva valoarea lui ECX
-    64 00000058 AC                                      lodsb                               ;incarcam in AL, elementul curent din sir
-    65 00000059 B900000000                              mov ECX, 0                          ;setam valoarea lui ECX la 0, pentru a-l folosi ca si contor
-    66 0000005E C605[FA000000]01                        mov [been_voc], BYTE 1              ;punem in variabila been_voc valoarea 1, insemnand ca presupunem ca nu e vocala
-    67                                                  vocala:
-    68 00000065 8A91[F0000000]                              mov DL, [vocale_mici + ECX]     ;punem in DL, vocala mica curenta
-    69 0000006B 8AB1[F5000000]                              mov DH, [vocale_mari + ECX]     ;punem in DH, vocala mare curenta
-    70 00000071 41                                          inc ECX                         ;incrementam valoarea lui ECX, pentru a trece la urmatoarea vocala
-    71 00000072 38D0                                        cmp AL, DL                      ;comparam elementul curent cu vocala mica curenta
-    72 00000074 7408                                            je vocala_mica              ;in caz de egalitate, mergem la etiecheta vocala_mica
-    73 00000076 EB21                                            jmp try_voc_mare            ;altfel incercam sa vedem daca caracterul curent este o vocala mare
-    74                                                          vocala_mica:
-    75 00000078 88C4                                              mov AH, AL                
-    76 0000007A BB[E0000000]                                      mov EBX, tabHexa          ;mutam in EBX, tabHexa pentru a putea folosi functia xlat
-    77 0000007F C0E804                                            shr AL, 4                 ;shiftam la dreapta cu 4 pentru a avea in AL, cifra hexa din stanga
-    78 00000082 D7                                                xlat                      ;folosim xlat si vom avea in AL valoarea de la indexul ce era inainte in AL, din tabHexa
-    79 00000083 AA                                                stosb                     ;punem prima cifra in sirul rezultat
-    80 00000084 88E0                                              mov AL, AH
-    81 00000086 240F                                              and AL, 0Fh               ;salvam doar a 2-a cifra hexa, deoarece aceasta ne intereseaza
-    82 00000088 D7                                                xlat                      ;aplicam din nou xlat si salvam in rezultat cifra
-    83 00000089 AA                                                stosb
-    84 0000008A C605[FA000000]00                                  mov [been_voc], BYTE 0    ;setam been_voc la 0, inseamna ca am gasit vocala
-    85 00000091 EB27                                              jmp base_case             ;sarim la cazul de baza
-    86                                                          try_voc_mare:
-    87 00000093 38F0                                                cmp AL, DH
-    88 00000095 7408                                                je put_voc_mare        ;-----------------------------------------------------------
-    89 00000097 EB21                                                jmp base_case           ;aplicam acelasi rationament doar ca pentru vocalele mari  |
-    90                                                              put_voc_mare:          ;-----------------------------------------------------------
-    91 00000099 88C4                                                    mov AH, AL
-    92 0000009B BB[E0000000]                                            mov EBX, tabHexa
-    93 000000A0 C0E804                                                  shr AL, 4
-    94 000000A3 D7                                                      xlat
-    95 000000A4 AA                                                      stosb
-    96 000000A5 88E0                                                    mov AL, AH
-    97 000000A7 240F                                                    and AL, 0Fh
-    98 000000A9 D7                                                      xlat
-    99 000000AA AA                                                      stosb
-   100 000000AB C605[FA000000]00                                        mov [been_voc], BYTE 0
-   101 000000B2 EB06                                                    jmp base_case
-   102                                                      base_case:
-   103 000000B4 83F905                                          cmp ECX, 5      ;daca inca mai avem vocale
-   104 000000B7 7CAC                                            jnge vocala     ;comparam in continuare
-   105 000000B9 EB06                                            jmp finished    ;reluam primul loop
-   106                                              finished:
-   107 000000BB 8A15[FA000000]                          mov DL, [been_voc]      ;punem in DL, valoarea lui been_voc
-   108 000000C1 B601                                    mov DH, 1               
-   109 000000C3 38F2                                    cmp DL, DH              ;comparam DL, 1
-   110 000000C5 7408                                    je store_cons           ;daca DL este 1, inseamna ca avem consoana, deci sarim la store_cons pentru a o pune in sir
-   111 000000C7 EB07                                    jmp reinit              ;sarim la reinitializarea primului loop
-   112                                              store_cons:
-   113 000000C9 AA                                      stosb
-   114                                              reinit:
-   115 000000CA 59                                      pop ECX                 ;scoatem ECX de pe stiva
-   116 000000CB E28A                                    loop compare            ;ne reintoarcem la primul loop
-   117 000000CD E954FFFFFF                          jmp repeta  ;refacem bucla de citire
-   118                                          
-   119                                          cleanup:
-   120                                              
-   121 000000D2 68[0B000000]                          push DWORD mod_acces1       ;Deschidem fisierul pentru scriere
-   122 000000D7 68[00000000]                          push DWORD nume_fisier    
-   123 000000DC FF15[00000000]                        call [fopen]
-   124 000000E2 83C408                                add ESP, 4*2                ; eliberam parametrii de pe stiva
-   125                                                  
-   126                                                  
-   127 000000E5 83F800                                cmp EAX, 0                  ; comparam din nou valoarea returnata de eax cu 0, pentru a nu exista erori
-   128 000000E8 742E                                  je final
-   129                                                
-   130 000000EA A3[0D000000]                          mov [descripotr_fis], EAX   ;punem in descripotr_fis valoarea returnata de EAX
-   131                                                  
-   132 000000EF 68[79000000]                           push dword rez
-   133 000000F4 FF35[0D000000]                         push dword [descripotr_fis]
-   134 000000FA FF15[00000000]                         call [fprintf]             ;afisam rezultatul in fisier
-   135 00000100 83C408                                 add esp, 4*2
-   136                                              
-   137 00000103 FF35[0D000000]                      push DWORD [descripotr_fis]
-   138 00000109 FF15[00000000]                      call [fclose]                 ;inchidem fisierul
-   139 0000010F 83C404                              add ESP, 4
-   140                                          final:
-   141 00000112 6A00                            push    dword 0      
-   142 00000114 FF15[00000000]                  call    [exit]      
+     7                                  
+     8                                  global start        
+     9                                  
+    10                                  
+    11                                  extern exit, fopen, fread, fclose, printf, fprintf    
+    12                                  import exit msvcrt.dll
+    13                                  import fopen msvcrt.dll
+    14                                  import fread msvcrt.dll
+    15                                  import fclose msvcrt.dll
+    16                                  import printf msvcrt.dll
+    17                                  import fprintf msvcrt.dll
+    18                                  
+    19                                  segment data use32 class=data
+    20                                      ; ...
+    21 00000000 746573742E74787400          nume_fisier db "test.txt", 0 ;numele fisierului care ca fi creat
+    22 00000009 7700                        mod_acces1 db "w", 0
+    23 0000000B 7200                        mod_acces db "r", 0           ;modul de deschidere a fisierului
+    24                                      len equ 100                   ;numarul maxim de elemente cititie din fisier
+    25 0000000D 00<rept>                    buffer times (len + 1) db 0     ;sirul in care se va citit textul din fisier de dimensiune (len + 1)
+    26 00000072 FFFFFFFF                    descrptor_fis dd -1           ;variabila in care vom salva descriptorul fisierului - necesar pentru a putea face referire la fisier
+    27 00000076 257300                      format db "%s", 0 ;formatul - utilizat pentru afisarea numarului de consoane din textul cititi
+    28                                  ; our code starts here
+    29 00000079 00000000                    nr_car_citite dd 0 ;variabila in care vom salva numarul de caractere
+    30 0000007D 00                          numar_cons db 0   ;variabila care numara cate consoane avem
+    31                                      
+    32 0000007E 4145494F55                  sir1 db "AEIOU"
+    33 00000083 6165696F75                  sir2 db "aeiou"
+    34 00000088 00                          var db 0
+    35                                  segment code use32 class=code
+    36                                      start:
+    37                                          ;apelam fopen pentru a deschide fisierului
+    38                                          ;functia va returna in EAX descriptorul fisierului sau 0 in caz de eroare
+    39                                          ;EAX = fopen(nume_fisier, mod_acces)
+    40                                          
+    41 00000000 68[0B000000]                    push DWORD mod_acces
+    42 00000005 68[00000000]                    push DWORD nume_fisier
+    43 0000000A FF15[00000000]                  call [fopen]
+    44 00000010 83C408                          add ESP, 4*2    ;eliberam parametrii de pe stiva
+    45                                         
+    46 00000013 A3[72000000]                    mov [descrptor_fis], EAX ;salvam valoarea returnata de fopen in variabila descrptor_fis
+    47                                          
+    48                                          ;verificam daca functia fopen a accesat cu succes fisierul (daca EAX != 0)
+    49                                          
+    50 00000018 83F800                          cmp EAX, 0
+    51 0000001B 7476                            je final
+    52                                          ;citim textul din fisierul deschis folosind functia fread
+    53                                          ;EAX = fread(text, 1, len, descrptor_fis)
+    54                                          
+    55                                          bucla:
+    56                                              ;citim o parte(100 de caractere) din textul in fisierul deschis folosind fread
+    57                                              ;EAX = fread(buffer, 1, len, descrptor_fis)
+    58 0000001D FF35[72000000]                      push DWORD [descrptor_fis]
+    59 00000023 6A64                                push DWORD len
+    60 00000025 6A01                                push DWORD 1
+    61 00000027 68[0D000000]                        push DWORD buffer
+    62 0000002C FF15[00000000]                      call [fread]
+    63 00000032 83C410                              add ESP, 4*4
+    64                                              
+    65                                              ;EAX = numar de caractere /bytes citite
+    66 00000035 83F800                              cmp EAX, 0  ;daca numarul de caractere citite este  0, am terminat de parcurs fisierul
+    67 00000038 7459                                je clean_up
+    68                                              
+    69 0000003A A3[79000000]                        mov [nr_car_citite], EAX ;salvam numarul de caractere citite
+    70                                              
+    71 0000003F 8B0D[79000000]                      mov ECX, [nr_car_citite]
+    72 00000045 BB00000000                          mov EBX, 0
+    73 0000004A BA00000000                          mov EDX, 0
+    74                                              
+    75                                             
+    76                                              
+    77                                              repeta:
+    78 0000004F 8A82[0D000000]                          mov AL, [buffer + EDX]
+    79 00000055 51                                      push ECX
+    80 00000056 B905000000                              mov ECX, 5
+    81 0000005B BB00000000                              mov EBX, 0
+    82                                                  verif:
+    83 00000060 3A83[83000000]                              cmp AL, [sir2 + EBX]
+    84 00000066 7402                                        je lower
+    85 00000068 750B                                        jne test_higher
+    86                                                      lower:
+    87 0000006A B0F5                                            mov AL, 245
+    88 0000006C 8882[0D000000]                                  mov [buffer + EDX], AL
+    89 00000072 43                                              inc EBX
+    90 00000073 E2EB                                            loop verif
+    91                                                      test_higher:
+    92 00000075 43                                              inc EBX
+    93 00000076 E2E8                                            loop verif
+    94 00000078 59                                      pop ECX
+    95                                          
+    96                                          
+    97 00000079 42                                  inc EDX
+    98 0000007A E2D3                                loop repeta
+    99                                              
+   100 0000007C 60                                  pushad
+   101 0000007D 68[0D000000]                        push DWORD buffer
+   102 00000082 68[76000000]                        push DWORD format
+   103 00000087 FF15[00000000]                      call [printf]
+   104 0000008D 83C408                              add ESP, 4*2
+   105 00000090 61                                  popad
+   106 00000091 EB8A                                jmp bucla ;refacem citirea
+   107                                              
+   108                                          clean_up:
+   109                                             
+   110                                              ;cand am terminat de prelucrat sirul, afisam numarul de consoane
+   111                                              
+   112                                              
+   113                                              ;apelam functia fclose pentru a inchide fisierul
+   114                                              ;fclose(descrptor_fis)
+   115                                              ;push DWORD [descrptor_fis]
+   116                                              ;call [fclose]
+   117                                              ;add ESP, 4
+   118                                              
+   119                                              
+   120                                          final:
+   121 00000093 6A00                            push    dword 0      
+   122 00000095 FF15[00000000]                  call    [exit]      

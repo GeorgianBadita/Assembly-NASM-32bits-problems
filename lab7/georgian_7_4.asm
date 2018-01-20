@@ -10,8 +10,9 @@ extern exit, printf
 import exit msvcrt.dll
 import printf msvcrt.dll
 segment data use32 class=data
-    s db 2, 3, 4, 56, 4, 3, 4, 56, 12, 3 ,3 ,4, 56, 3, 4, 56, 5, 6, 3, 4, 56, 1 ;sirul initial
-    s1 db 3, 4, 56 ;sirul de verificat a fi subsir
+    s db "abcdbecdbec0"
+    ;sirul initial
+    s1 db "bec" ;sirul de verificat a fi subsir
     len_S equ s1 - s ;lungimea sirului s
     len_S1 equ $ - s1 ;lungimea sirului s1
     rez times len_S db -1 ;rezultatul

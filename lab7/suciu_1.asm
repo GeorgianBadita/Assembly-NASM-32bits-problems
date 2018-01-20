@@ -6,7 +6,7 @@ bits 32
 global start        
 
 
-extern exit              
+extern exit            
 import exit msvcrt.dll
 segment data use32 class=data
     a dw 1234h, 5678h, 90h
@@ -17,6 +17,7 @@ segment data use32 class=data
     c times lenA + lenB db 0
     saveSort dd 0
     aux db 0
+ 
 ;c should be 34h, 78h, 90h, 00h, abh, 00h, 11h
 ; our code starts here
 segment code use32 class=code
@@ -64,7 +65,6 @@ segment code use32 class=code
             jnz nextComp ;mergem la urmatoarea comparatie
         loop nextScan ;mergem la urmatoarea scanare
        
-        
         push    dword 0      
         call    [exit]      
 

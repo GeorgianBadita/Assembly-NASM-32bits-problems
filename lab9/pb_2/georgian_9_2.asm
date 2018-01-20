@@ -1,8 +1,3 @@
-;Badita Marin-Georgian, gr. 211, 28.11.2017, tema lab 9, problema 2
-
-;Se da un fisier text. Sa se citeasca continutul fisierului, sa se contorizeze numarul de consoane si sa se afiseze aceasta valoare. 
-;Numele fisierului text este definit in segmentul de date.
-
 
 
 bits 32
@@ -28,7 +23,10 @@ segment data use32 class=data
     format db "Numarul de consoane din text este %d", 0 ;formatul - utilizat pentru afisarea numarului de consoane din textul cititi
 ; our code starts here
     nr_car_citite dd 0 ;variabila in care vom salva numarul de caractere
-    numar_cons db 0   ;variabila care numara cate consoane avem
+    numar_cons dd 0   ;variabila care numara cate consoane avem
+    cons_mici db "bcdfghjklmnpqrstvwxyz"
+    cons_Mari db "BCDFGHJKLMNPQRSTVWXYZ"
+    aux dd 0
 segment code use32 class=code
     start:
         ;apelam fopen pentru a deschide fisierului
@@ -67,43 +65,43 @@ segment code use32 class=code
             mov EDX, 0      ;punem 0 in EDX, deoarece il vom folosi ca si contor
             mov ECX, [nr_car_citite] ;punem in ECX nr_car_citite ca sa iteram 
             cld ;setam directia de parcurgere de la stanga la dreapta
-            jecxz final
-            num_cons:   
-                
-                mov BL, [buffer + EDX] ;punem in BL pozitia curenta din sir
-                inc EDX ;incrementam EDX pentru a trece la pozitia urmatoare
-                cmp BL, 'a' ;comparam valoarea curenta cu a
-                jne comp_e ;daca nu este egala cu a, trecem la e
-                je not_cons ;daca este egala cu a, sarim la eticheta not_cons
-                comp_e: 
-                    cmp BL, 'e' ;comparam valoarea curenta cu e
-                    jne comp_i ;daca nu este egala trecem la compararea cu i
-                    je not_cons ;daca caracterul este egal cu i trecem la eticheta not_cons
-                    comp_i: 
-                        cmp BL, 'i' ;comparam caracterul curent cu i
-                        jne comp_o ;daca nu este egal cu i, trecem la compararea cu o
-                        je not_cons ;daca este egal cu i atunci sarim la eticheta not_cons
-                        comp_o:
-                            cmp BL, 'o' ;comparam caracterul curent cu o
-                            jne comp_u ;daca nu este egal cu o, trecem la compararea cu u
-                            je not_cons ;daca este egal cu o atunci trecem la eticheta not_cons
-                            comp_u:
-                                cmp BL, 'u' ;acelasi rationament ca si mai sus
-                                jne count_cons ;daca programul a ajuns cu executia la aceasta instructiune
-                                ;si caracterul curent nu este egal cu u atunci el este consoana si sarim la eticheta count_cons
-                                je not_cons ;daca caracterul curent este egaul cu u sarim la eticheta not_cons
-                
-                count_cons:
-                    cmp BL, ' ' ;mai avem o ultima comparatie de facut, anume daca caracterul curent este spatuu
-                    jne count ;daca nu este spatiu, sarim la eticheta count
-                    je not_cons ;daca este spatiu sarim la eticheta not_cons
-                    count:
-                        mov BL, [numar_cons] ;punem numarul de consoane curente in BL
-                        inc BL ;incrementam BL
-                        mov [numar_cons], BL ;updatam numarul de consoane
-                        loop num_cons ;mergem inapoi la eticheta num_cons pentru a verifica urmatoarele caractere
-                not_cons:
-                    loop num_cons ;daca caracterul nu este consoana, revenim la eticheta num_cons pentru a verifica celelalte caractere ramase
+            cmp ECX, 0
+            je final
+            
+            mov EDX, 0
+            num_cons:
+                push ECX
+                mov ECX, 21
+                mov EBX, 0
+                mov AL, [buffer + EDX]
+                inc EDX
+                check_cons:
+                    mov AH, [cons_Mari + EBX]
+                    cmp AL, AH
+                    je cnt_cons1
+                    jmp next
+                    cnt_cons1:
+                        mov [aux], EBX
+                        mov EBX, [numar_cons]
+                        inc EBX
+                        mov [numar_cons], EBX
+                        mov EBX, [aux]
+                    next:
+                        mov AH, [cons_mici + EBX]
+                        cmp AL, AH
+                        je cnt_cons2
+                        jmp last_step
+                        cnt_cons2:
+                            mov [aux], EBX
+                            mov EBX, [numar_cons]
+                            inc EBX
+                            mov [numar_cons], EBX
+                            mov EBX, [aux]
+                        last_step:
+                            inc EBX
+                            loop check_cons
+                pop ECX
+            loop num_cons
             jmp bucla ;refacem citirea
             
         clean_up:
